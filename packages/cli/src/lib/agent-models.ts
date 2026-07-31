@@ -60,6 +60,14 @@ export const AGENT_MODELS: Record<AI_AGENT, AgentModelConfig[]> = {
     { name: 'pro', description: 'Deep reasoning and creativity' },
     { name: 'flash-lite', description: 'Fast and lightweight' },
   ],
+  [AI_AGENT.MiniMax]: [
+    {
+      name: 'MiniMax-M3',
+      description: 'MiniMax-M3 model',
+      isDefault: true,
+    },
+    { name: 'MiniMax-M2.7', description: 'MiniMax-M2.7 model' },
+  ],
   [AI_AGENT.Qwen]: [
     {
       name: 'coder-model',
