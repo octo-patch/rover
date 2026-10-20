@@ -84,6 +84,7 @@ export class MiniMaxAgent extends BaseAgent {
     precontext: string,
     initialPrompt?: string
   ): string[] {
+    prepareMiniMaxConfig(this.model);
     const prompt = [precontext, initialPrompt].filter(Boolean).join('\n\n');
     return prompt
       ? ['--workspace', process.cwd(), prompt]

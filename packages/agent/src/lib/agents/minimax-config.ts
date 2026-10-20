@@ -122,7 +122,7 @@ export function prepareMiniMaxConfig(
   }
 
   if (typeof config.model !== 'string' || config.model.length === 0) {
-    config.model = 'MiniMax-M3';
+    config.model = 'MiniMax-M3.1-Flash';
     changed = true;
   }
 

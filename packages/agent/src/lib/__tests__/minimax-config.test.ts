@@ -7,8 +7,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { parse, stringify } from 'yaml';
 import { MiniMaxAgent } from '../agents/minimax.js';
 import {
   getMiniMaxConfigPath,
@@ -26,7 +26,91 @@ describe('MiniMax configuration', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it.each([undefined, ''])('defaults an unset model (%s) to Flash', model => {
+    const configPath = join(testDir, 'config.yaml');
+    writeFileSync(configPath, stringify({ api_key: 'test-key', model }));
+
+    prepareMiniMaxConfig(undefined, configPath);
+
+    expect(parse(readFileSync(configPath, 'utf8'))).toEqual({
+      api_key: 'test-key',
+      api_base: 'https://api.minimax.io',
+      provider: 'anthropic',
+      model: 'MiniMax-M3.1-Flash',
+    });
+  });
+
+  it.each([
+    'MiniMax-M3.1-Flash',
+    'MiniMax-M3',
+    'MiniMax-M2.7',
+    'custom-model',
+  ])('preserves the saved model %s and unrelated configuration', model => {
+    const configPath = join(testDir, 'config.yaml');
+    const config = {
+      api_key: 'test-key',
+      api_base: 'https://gateway.example.test/custom/v1',
+      provider: 'openai',
+      model,
+      tools: { enable_mcp: true, mcp_config_path: 'custom-mcp.json' },
+      max_steps: 25,
+    };
+    const original = stringify(config);
+    writeFileSync(configPath, original);
+
+    prepareMiniMaxConfig(undefined, configPath);
+
+    expect(readFileSync(configPath, 'utf8')).toBe(original);
+  });
+
+  for (const endpoints of Object.values(MINIMAX_API_ENDPOINTS)) {
+    for (const [provider, apiBase] of Object.entries(endpoints)) {
+      it(`defaults to Flash with ${apiBase} without changing protocol`, () => {
+        const configPath = join(testDir, 'config.yaml');
+        writeFileSync(
+          configPath,
+          stringify({ api_key: 'test-key', api_base: apiBase, provider })
+        );
+
+        prepareMiniMaxConfig(undefined, configPath);
+
+        expect(parse(readFileSync(configPath, 'utf8'))).toEqual({
+          api_key: 'test-key',
+          api_base: new URL(apiBase).origin,
+          provider,
+          model: 'MiniMax-M3.1-Flash',
+        });
+      });
+    }
+  }
+
+  it.each([
+    'MiniMax-M3.1-Flash',
+    'MiniMax-M3',
+    'MiniMax-M2.7',
+    'custom-model',
+  ])('applies explicit model %s to ACP and interactive launches', model => {
+    vi.stubEnv('HOME', testDir);
+    const configPath = getMiniMaxConfigPath(testDir);
+    mkdirSync(join(testDir, '.mini-agent', 'config'), { recursive: true });
+    const original = stringify({ api_key: 'test-key', model: 'saved-model' });
+    const agent = new MiniMaxAgent('latest', model);
+    writeFileSync(configPath, original);
+
+    expect(agent.toolArguments()).toEqual([]);
+    expect(parse(readFileSync(configPath, 'utf8')).model).toBe(model);
+
+    writeFileSync(configPath, original);
+    expect(agent.toolInteractiveArguments('context', 'prompt')).toEqual([
+      '--workspace',
+      process.cwd(),
+      'context\n\nprompt',
+    ]);
+    expect(parse(readFileSync(configPath, 'utf8')).model).toBe(model);
   });
 
   it('normalizes each documented regional endpoint to its API root', () => {

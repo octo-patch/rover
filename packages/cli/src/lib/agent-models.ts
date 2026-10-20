@@ -62,11 +62,11 @@ export const AGENT_MODELS: Record<AI_AGENT, AgentModelConfig[]> = {
   ],
   [AI_AGENT.MiniMax]: [
     {
-      name: 'MiniMax-M3',
-      description: 'MiniMax-M3 model',
+      name: 'MiniMax-M3.1-Flash',
+      description: 'MiniMax-M3.1-Flash model',
       isDefault: true,
     },
-    { name: 'MiniMax-M2.7', description: 'MiniMax-M2.7 model' },
+    { name: 'MiniMax-M3', description: 'MiniMax-M3 model' },
   ],
   [AI_AGENT.Qwen]: [
     {
